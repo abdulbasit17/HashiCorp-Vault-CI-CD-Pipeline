@@ -1,25 +1,36 @@
-from flask import Flask
-import hvac  # Import hvac for Vault
+from flask import Flask, render_template
+import requests
+import os
 
 app = Flask(__name__)
 
-# Function to retrieve secrets from Vault
-def get_vault_secrets():
-    client = hvac.Client(url='http://127.0.0.1:8200')  # Vault address
-    client.token = 'hvs.87vSa12zTNEAXBa1nGGM4RkQ'  # Set your Vault token
+VAULT_ADDR = os.getenv('VAULT_ADDR', 'http://127.0.0.1:8200')
+VAULT_TOKEN = os.getenv('VAULT_TOKEN')
 
-    # Fetch the secret stored under 'secret/data/myapp'
-    secret = client.secrets.kv.v2.read_secret_version(path='myapp')
-
-    aws_access_key = secret['data']['data']['aws_access_key']
-    aws_secret_key = secret['data']['data']['aws_secret_key']
-
-    return aws_access_key, aws_secret_key
+def get_secret():
+    if not VAULT_TOKEN:
+        return "Vault Token not set!"
+    
+    headers = {'X-Vault-Token': VAULT_TOKEN}
+    secret_url = f"{VAULT_ADDR}/v1/secret/data/myapp"
+    response = requests.get(secret_url, headers=headers)
+    
+    if response.status_code == 200:
+        data = response.json()
+        aws_access_key = data['data']['data']['aws_access_key']
+        aws_secret_key = data['data']['data']['aws_secret_key']
+        return f"Access Key: {aws_access_key}, Secret Key: {aws_secret_key}"
+    else:
+        return "Failed to fetch secrets from Vault!"
 
 @app.route('/')
-def home():
-    aws_access_key, aws_secret_key = get_vault_secrets()
-    return f"Access Key: {aws_access_key}, Secret Key: {aws_secret_key}"
+def index():
+    return render_template('index.html')
+
+@app.route('/fetch-secrets')
+def fetch_secrets():
+    secrets = get_secret()
+    return render_template('secrets.html', secrets=secrets)
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)  # Ensure it runs on port 5000
+    app.run(host='0.0.0.0', port=5000)
