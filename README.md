@@ -32,4 +32,4 @@ This project demonstrates how to build a CI/CD pipeline using Jenkins, Vault for
    - Use Nginx to reverse proxy both Jenkins and Flask.
 
 6. **CI/CD Pipeline:**
-   - Create a `Jenkinsfile` that automates the entire process from code checkout to app deployment.
+   - Create a `Jenkinsfile` that automates the entire process .
